@@ -1,4 +1,5 @@
 from requests import session
+from tabulate import tabulate
 from bs4 import BeautifulSoup as bs
 import json
 import datetime
@@ -14,10 +15,7 @@ USER = os.environ.get("USER_NAME")
 PASSWORD = os.environ.get("PASSWORD")
 URL2 = os.environ.get("URL")
 
-
-print(USER)
-print(PASSWORD)
-print(URL2)
+print('Script started')
 
 with session() as s:
                   
@@ -32,7 +30,9 @@ with session() as s:
                   'authenticity_token' : token}
                       
     response_1 = s.post(URL1, data = login_data)
+    print('Successfuly logged to github')
     response_2 = s.get(URL2)
+    print('Successfuly fetched data from github')
 
     content = bs(response_2.content, "html.parser")
 
@@ -51,16 +51,32 @@ with session() as s:
             "additional": additional,
         }
         commits.append(commitObject)
+
+    day = 0
+    days = 5
+    output = {}
+
+    for x in range(days):
         
+        data = []
+        date = ''
+        for i in commits:
+            dt = maya.parse(i['date']).datetime(to_timezone='Europe/Warsaw', naive=False).replace(tzinfo=None)
+            date = dt.strftime('%Y-%m-%d')
+            difference = (datetime.datetime.today() - dt).days
+            if difference == day: 
+                toAdd = i['additional'] if i['additional'] else ''
+                data.append(i['text'] + toAdd)
+                output[date] = data
+                
+        day = day + 1
 
-    day = 1
-    data = []
-
-    for i in commits:
-        dt = maya.parse(i['date']).datetime(to_timezone='Europe/Warsaw', naive=False).replace(tzinfo=None)
-        difference = (datetime.datetime.today() - dt).days
-        if difference == day: 
-            data.append(i['text'])
+    table = []
+    for key in output:
+        table.append([key, '\n'.join(output[key])])
+    print(tabulate(table))
 
     with open('commits.json', 'w') as outfile:
-        json.dump(data, outfile)
+        json.dump(output, outfile)
+
+    print('Successfuly saved commits')
